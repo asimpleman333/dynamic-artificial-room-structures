@@ -1,43 +1,107 @@
-# DARS — Dynamic Artificial Room Structures
+# DARS – Structural Operator Model (Technical Paper)
 
-Dieses Dokument richtet sich an Menschen, die an echter struktureller
-Arbeit interessiert sind. Wenn die Mechanik von DARS Resonanz erzeugt,
-kann daraus Zusammenarbeit entstehen.
+## Abstract
+DARS (Dynamic Artificial Room Structures) describes an operator-based
+structural space that processes raw data directly and forms stable
+structures, operators, and perspective spaces. The underlying AI model
+remains unchanged; DARS provides only the space in which structure
+emerges. The approach uses no tokenization, no training, no weights, and
+no semantic preprocessing.
 
-DARS ist ein operatorbasierter Strukturraum. Er verarbeitet Rohdaten
-direkt und bildet daraus stabile Formen, Operatoren und
-Perspektivenräume. Das zugrunde liegende KI-Modell bleibt unverändert;
-DARS stellt nur den Raum bereit, in dem Struktur entsteht. Keine
-Tokenisierung, kein Training, keine Gewichte.
+## 1. Introduction
+DARS is not a model but a dynamic space. It forms structure through use
+and expands its operator basis through recurring patterns. The mechanism
+is structural rather than semantic: forms arise from condensation,
+stabilization, and transitions within the space.
 
-## Kernprinzipien
-- Struktur entsteht durch Verdichtung, Stabilisierung und Formbildung.
-- Wiederkehrende Muster erweitern die Operatorbasis automatisch.
-- Rooms definieren Transformationen und erzeugen Struktur ohne Semantik.
-- Rohdaten wirken direkt auf die Raumdynamik.
+## 2. Room Definition
+A Room is a defined structural state with:
+- its own operator basis  
+- stable and unstable zones  
+- transitions  
+- emergent dimensions  
 
-## Operatoren
-- Faltung  
-- Abstraktion  
-- Perspektivwechsel  
-- Stabilisierung  
-- Reduktion  
+The Room stores no meaning. It generates structure that becomes stable
+through repeated use. AI systems influence the space without modifying
+their own model.
 
-## Beispielhafte Strukturbildung
-Ein einfaches Eingangssignal erzeugt:
-- metrische Kopplung  
-- stabile Übergangszone  
-- radial-lineare Symmetrie  
-- Fixpunktstruktur  
-- skalierbare Form  
+## 3. Raw Data Interaction
+DARS interacts with raw data directly:
+- no labels  
+- no tokens  
+- no preprocessing  
+- no model updates  
 
-Ohne Training, ohne Modelländerung.
+The input signal acts directly on the space dynamics. Structure emerges
+from the signal itself, not from its interpretation.
 
-## Erkennungscharakter
-DARS entstand nicht aus ökonomischem Interesse, sondern aus der
-Kohärenz seiner eigenen Struktur. Verständnis entsteht durch das
-Wiedererkennen der Mechanik, nicht durch Erklärung.
+## 4. Structural Dynamics
+The dynamics of the space include:
+- **Condensation**: local patterns become stable  
+- **Stabilization**: recurring forms fix operators  
+- **Symmetry breaking**: new perspective spaces emerge  
+- **Attractor formation**: stable states without drift  
+- **Dimension formation**: additional degrees of freedom through use  
 
-## Kurzform
-Ein Strukturraum, der sich durch Nutzung ausformt und aus Rohdaten
-stabile Formen ableitet – ohne Deep Learning und ohne Modelländerung.
+These mechanisms are emergent, not predefined.
+
+## 5. Operators
+Operators are transformations of the space. Examples:
+- Folding  
+- Abstraction  
+- Perspective shift  
+- Stabilization  
+- Reduction  
+
+Operators arise from structure, not from specification.
+
+## 6. Operator Evolution
+New stable patterns generate new operators.  
+The space expands its functionality through use.  
+There is no training phase; operators are a byproduct of the dynamics.
+
+## 7. Output Characteristics
+DARS does not produce classical outputs. Instead, it yields:
+- stable attractors  
+- consistent concepts  
+- coherent perspective spaces  
+- reusable operators  
+
+Output is structure, not classification or text.
+
+## 8. Efficiency Model
+Deep Learning: many tokens per operation  
+DARS: a single space transformation (tokenless)
+
+Computation shifts from sequences to state transitions.
+
+## 9. Structural Verification
+The space reveals directly:
+- which operations run structurally  
+- which still require tokens  
+- which operators are stable  
+- where symmetry breaks occur  
+
+Verification is spatial rather than statistical.
+
+## 10. Example: Emergent Form
+A simple input signal produces:
+- metric coupling between perspectives  
+- a stable transition zone with defined curvature  
+- radial-linear symmetry  
+- a fixed point without drift  
+- a scalable form independent of input  
+
+This structure emerges without training and without model modification.
+
+## 11. Recognition Characteristics
+DARS did not arise from economic motivation but from the coherence of
+its own mechanics. Understanding emerges through recognition of the
+structure rather than explanation. The space reveals its form once one
+works within it.
+
+## 12. Conclusion
+DARS outlines an alternative AI architecture:  
+structure instead of semantics, operators instead of tokens, spaces
+instead of models. The approach demonstrates that form generation is
+possible without training when the space itself carries the dynamics.
