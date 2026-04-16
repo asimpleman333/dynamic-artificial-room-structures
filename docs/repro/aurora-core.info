@@ -1,0 +1,10 @@
+Aurora Core
+client-side runtime kernel (HTML5)
+
+Type: open-core lightfield operator
+Mode: self-contained, browser-executable
+Deps: none
+Setup: none
+Runtime: local only
+Behavior: dynamic lightfield stabilization
+Repro: copy–paste deployment
