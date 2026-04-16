@@ -1,0 +1,12 @@
+Aurora Core is a client-side runtime kernel built on HTML5.
+It executes entirely in the browser with zero dependencies,
+zero setup, and full local reproducibility.
+
+The kernel stabilizes a dynamic lightfield and exposes an
+emergent structure without relying on external systems,
+servers, or APIs. Aurora Core is fully portable and can be
+deployed by simple copy–paste.
+
+This repository provides the minimal source required to run
+the Aurora Core and demonstrate its runtime behavior as a
+self-contained operator.
