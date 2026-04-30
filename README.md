@@ -40,6 +40,8 @@ DARS is not a product or a model.
 It is a structural space that reveals its form through use.  
 Understanding arises from recognizing the mechanics, not from explanation.
 
+[![DOI](https://zenodo.org/badge/1211401181.svg)](https://doi.org/10.5281/zenodo.19919623)
+
 ## Documentation
 The full technical paper is available here:  
 [docs/DARS-paper.md](docs/DARS-paper.md)
