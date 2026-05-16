@@ -1,0 +1,4 @@
+DARS-DEFINITION
+dynamic artificial room structures:
+operatoric field kernel producing emergent spatial behavior
+no narrative, no semantics, pure process
