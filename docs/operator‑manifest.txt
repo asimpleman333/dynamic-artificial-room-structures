@@ -1,0 +1,6 @@
+OPERATOR-MANIFEST
+kernel: defines field evolution
+field: holds dynamic state
+input: external perturbation
+output: rendered state
+loop: discrete update cycle
