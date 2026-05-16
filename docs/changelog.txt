@@ -1,0 +1,3 @@
+CHANGELOG
+0.1.0 initial operator layout
+0.1.1 docs structure established
