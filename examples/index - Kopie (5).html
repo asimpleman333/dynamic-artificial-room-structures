@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>DARS (Adaptive)</title>
+<style>
+body { margin:0; background:#000; overflow:hidden; }
+#hud {
+  position:fixed; top:20px; left:20px;
+  padding:10px 14px;
+  background:rgba(0,0,0,0.82);
+  color:#ccc; font-family:monospace;
+  font-size:12px; line-height:1.4;
+  border:1px solid #444;
+  pointer-events:none; white-space:pre;
+  max-width:420px;
+}
+</style>
+<meta name="analysis" content="pending">
+    <meta name="structure" content="v1">
+</head>
+<body>
+<div id="hud">Loading…</div>
+<canvas id="c"></canvas>
+  
+<script>
+const hud = document.getElementById("hud");
+const c   = document.getElementById("c");
+const ctx = c.getContext("2d");
+
+// Shadow-Memory
+const mem    = document.createElement("canvas");
+const memCtx = mem.getContext("2d");
+
+let w, h;
+function resize() {
+  w = c.width  = innerWidth;
+  h = c.height = innerHeight;
+  mem.width  = w;
+  mem.height = h;
+}
+addEventListener("resize", resize);
+resize();
+
+let t = 0;
+let phaseLock = 0;
+let memEnergy = 0;
+
+// Interaktive Resonanz
+let mouseX = 0.5;
+let mouseY = 0.5;
+addEventListener("mousemove", e => {
+  mouseX = e.clientX / innerWidth;
+  mouseY = e.clientY / innerHeight;
+});
+
+// ------------------------------------------------------------
+// Adaptive Meta-Parameter
+// ------------------------------------------------------------
+let opWeights = {
+  A1: 1.0,
+  A2: 1.0,
+  B1: 1.0,
+  B2: 1.0
+};
+
+let opFreq = {
+  A1: 10,
+  A2: 15,
+  B1: 9,
+  B2: 14
+};
+
+let opMutRate = 0.002;   // adaptive Mutation
+let warpBase  = 0.6;     // Basis-Warp
+let stability = 0.5;     // grobe Feld-Stabilität (0=chaos,1=stabil)
+
+// ------------------------------------------------------------
+// Dynamic Silence Envelope
+// ------------------------------------------------------------
+let silenceUntil = 0;
+function lsEnvelope(t) {
+  if (t < silenceUntil) {
+    return { a1:0.22, a2:0.11, b1:0.05, b2:0.33, mode:"SILENCE" };
+  }
+  if (Math.random() < 0.008) {
+    silenceUntil = t + 0.35;
+    return { a1:0.22, a2:0.11, b1:0.05, b2:0.33, mode:"SILENCE" };
+  }
+  return { a1:1, a2:1, b1:1, b2:1, mode:"LOUD" };
+}
+
+// ------------------------------------------------------------
+// Fake-Audio + Envelope
+// ------------------------------------------------------------
+function getAudioSignals() {
+  const tt = t * 1.3;
+
+  let a1 = 0.4 + 0.3 * Math.sin(tt * 0.4 + Math.sin(tt * 0.1));
+  let a2 = 0.3 + 0.4 * Math.abs(Math.sin(tt * 1.3));
+  let b1 = 0.2 + 0.5 * Math.abs(Math.sin(tt * 2.7 + Math.sin(tt * 0.3)));
+  let b2 = 0.1 + 0.9 * Math.max(0, Math.sin(tt * 4.0));
+
+  b2 += (Math.random() - 0.5) * 0.03;
+
+  const env = lsEnvelope(t);
+
+  a1 *= env.a1;
+  a2 *= env.a2;
+  b1 *= env.b1;
+  b2 *= env.b2;
+
+  return { a1, a2, b1, b2, mode: env.mode };
+}
+
+// ------------------------------------------------------------
+// Feld-Operatoren (mit Adaptive Weights/Freq + Phase-Shift + Mouse)
+// ------------------------------------------------------------
+function A1(x, y, t, a) {
+  return Math.sin(
+    x*opFreq.A1 + y*20 +
+    t*0.10 +
+    Math.sin(t*0.3)*0.1 +
+    phaseLock +
+    (mouseX-0.5)*1.2
+  ) * a.a1 * opWeights.A1;
+}
+function A2(x, y, t, a) {
+  return Math.sin(
+    x*opFreq.A2 + y*9 +
+    t*0.07 +
+    Math.sin(t*0.2)*0.1 +
+    phaseLock*0.7 +
+    (mouseY-0.5)*1.0
+  ) * a.a2 * opWeights.A2;
+}
+function B1(x, y, t, a) {
+  return Math.sin(
+    x*opFreq.B1 + y*17 +
+    t*0.10 +
+    Math.sin(t*0.25)*0.1 -
+    phaseLock*0.5 +
+    (mouseX-0.5)*0.8
+  ) * a.b1 * opWeights.B1;
+}
+function B2(x, y, t, a) {
+  return Math.sin(
+    x*opFreq.B2 + y*20 +
+    t*0.08 +
+    Math.sin(t*0.35)*0.1 -
+    phaseLock*0.3 +
+    (mouseY-0.5)*0.9
+  ) * a.b2 * opWeights.B2;
+}
+
+function sampleField(nx, ny, t, a) {
+  const a1 = A1(nx, ny, t, a);
+  const a2 = A2(nx, ny, t, a);
+  const b1 = B1(nx, ny, t, a);
+  const b2 = B2(nx, ny, t, a);
+
+  const X = a1 - b1;
+  const Y = a2 - b2;
+
+  return { v: Math.sqrt(X*X + Y*Y), a1, a2, b1, b2 };
+}
+
+function buildField(cols, rows, t, audio) {
+  const a = { a1: audio.a1, a2: audio.a2, b1: audio.b1, b2: audio.b2 };
+  if (audio.mode === "SILENCE") {
+    const t1 = a.a1; a.a1 = a.b1; a.b1 = t1;
+    const t2 = a.a2; a.a2 = a.b2; a.b2 = t2;
+  }
+
+  const field = [];
+  let maxV = 0;
+  let sumV = 0;
+
+  const coreRadius = 8;
+  const cx = (cols - 1) / 2;
+  const cy = (rows - 1) / 2;
+  let coreSum = 0;
+  let coreCount = 0;
+
+  for (let j = 0; j < rows; j++) {
+    field[j] = [];
+    for (let i = 0; i < cols; i++) {
+      const nx = i / (cols - 1);
+      const ny = j / (rows - 1);
+      const f  = sampleField(nx, ny, t, a);
+      field[j][i] = f;
+
+      sumV += f.v;
+      if (f.v > maxV) maxV = f.v;
+
+      const dx = i - cx;
+      const dy = j - cy;
+      if (dx*dx + dy*dy <= coreRadius*coreRadius) {
+        coreSum += f.v;
+        coreCount++;
+      }
+    }
+  }
+
+  const norm = maxV > 0 ? maxV : 1;
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      field[j][i].v /= norm;
+    }
+  }
+
+  const coreStrength = coreCount > 0 ? (coreSum / coreCount) / norm : 0;
+
+  return {
+    field,
+    maxV,
+    meanV: sumV / (cols * rows),
+    coreStrength
+  };
+}
+
+// ------------------------------------------------------------
+// Memory-Driven Geometry: memEnergy
+// ------------------------------------------------------------
+function updateMemEnergy() {
+  try {
+    const d = memCtx.getImageData((w/2)|0, (h/2)|0, 1, 1).data;
+    const e = (d[0] + d[1] + d[2]) / (3 * 255);
+    memEnergy = memEnergy * 0.9 + e * 0.1;
+  } catch(e) {
+    memEnergy *= 0.95;
+  }
+}
+
+// ------------------------------------------------------------
+// Adaptive Meta-Operatoren
+// ------------------------------------------------------------
+function updateAdaptive(meta) {
+  const { core, meanV, maxV } = meta;
+
+  // Grobe Stabilitätsschätzung:
+  // hohe meanV + moderater core => stabil
+  // sehr niedrige oder sehr hohe meanV => instabil
+  let targetStability = 0.5;
+  if (meanV > 0.55 && meanV < 0.85) targetStability += 0.3;
+  if (core > 0.6) targetStability += 0.1;
+  if (meanV < 0.25 || meanV > 0.95) targetStability -= 0.3;
+  targetStability = Math.max(0, Math.min(1, targetStability));
+
+  stability = stability * 0.9 + targetStability * 0.1;
+
+  // Adaptive Mutation:
+  // zu stabil -> Mutation rauf
+  // zu chaotisch -> Mutation runter
+  const desiredMut =
+    stability > 0.7 ? 0.006 :
+    stability < 0.3 ? 0.001 :
+    0.003;
+  opMutRate = opMutRate * 0.9 + desiredMut * 0.1;
+
+  // Adaptive Weights:
+  // Memory hoch -> A-Operatoren stärker
+  // Corona (core) hoch -> B-Operatoren runter
+  const memBias  = memEnergy;
+  const coreBias = core;
+
+  opWeights.A1 = 0.8 + 0.8 * memBias;
+  opWeights.A2 = 0.8 + 0.8 * memBias;
+  opWeights.B1 = 1.2 - 0.7 * coreBias;
+  opWeights.B2 = 1.2 - 0.7 * coreBias;
+
+  // clamp
+  for (const k in opWeights) {
+    opWeights[k] = Math.max(0.3, Math.min(1.8, opWeights[k]));
+  }
+
+  // Adaptive Frequenzen:
+  // bei hoher Stabilität -> Frequenzen leicht auseinanderziehen
+  // bei Chaos -> Frequenzen näher zusammen
+  const baseFreq = { A1:10, A2:15, B1:9, B2:14 };
+  const spread   = 1.0 + 1.5 * (stability - 0.5); // -0.75..+0.75
+
+  opFreq.A1 = baseFreq.A1 * (1 + spread * 0.15);
+  opFreq.A2 = baseFreq.A2 * (1 - spread * 0.10);
+  opFreq.B1 = baseFreq.B1 * (1 - spread * 0.12);
+  opFreq.B2 = baseFreq.B2 * (1 + spread * 0.18);
+
+  // Adaptive Topologie (Warp):
+  // Memory + Stabilität beeinflussen Raumkrümmung
+  warpBase = 0.4 + 1.6 * memEnergy + 0.6 * (stability - 0.5);
+  warpBase = Math.max(0.2, Math.min(2.5, warpBase));
+}
+
+// ------------------------------------------------------------
+// Render
+// ------------------------------------------------------------
+function drawFrame(audio) {
+  ctx.clearRect(0, 0, w, h);
+
+  const cols    = 70;
+  const rows    = 70;
+  const layers  = 32;
+  const metrics = buildField(cols, rows, t, audio);
+  const field   = metrics.field;
+  const core    = metrics.coreStrength;
+
+  // Adaptive Meta-Update
+  updateAdaptive({
+    core,
+    meanV: metrics.meanV,
+    maxV: metrics.maxV
+  });
+
+  // Phase-Shift-Locking: Kern + Memory + Maus
+  const targetPhase = (core + memEnergy*0.7 + (mouseX-0.5)*0.4) * 2 * Math.PI;
+  phaseLock = phaseLock * 0.92 + targetPhase * 0.08;
+
+  const cx      = w * 0.5;
+  const cy      = h * 0.6;
+  const baseScale = Math.min(w, h) * 0.35;
+  const depth   = 0.6;
+
+  // Memory-Driven Geometry: Scale + leichte Kopplung an Stability
+  const scale = baseScale * (0.8 + 0.4 * memEnergy + 0.2 * (stability - 0.5));
+
+  // Hyperbolische Geometrie: Warp-Faktor adaptiv
+  const warp = warpBase;
+
+  function proj(x, y, z) {
+    let X = x - 0.5;
+    let Y = y - 0.5;
+    const r2 = X*X + Y*Y;
+    const f  = 1 / (1 + warp * r2);
+    X *= f;
+    Y *= f;
+
+    const ix = (X - Y) * 0.7 + z * 0.4;
+    const iy = (X + Y) * 0.4 - z * 0.8;
+    return [cx + ix * scale, cy + iy * scale];
+  }
+
+  const densityMod = 0.75 + 0.25 * (0.5 + 0.5 * Math.sin(t * 0.10));
+
+  let depthBoost = 1.0;
+  if (audio.mode === "SILENCE") {
+    const base = 0.05 + 0.15 * Math.sin(t * 12);
+    depthBoost = base * (0.7 + 0.6 * core + 0.4 * memEnergy);
+  }
+
+  let filamentBoost = 1.0 + core * 4.0 + memEnergy * 2.0;
+
+  let alphaBoost = audio.mode === "SILENCE" ? 2.4 : 1.0;
+  let sizeBoost  = audio.mode === "SILENCE" ? 1.7 : 1.0;
+
+  for (let k = layers - 1; k >= 0; k--) {
+    const lt = k / (layers - 1);
+    const z  = lt * depth * depthBoost;
+
+    for (let j = 0; j < rows; j++) {
+      for (let i = 0; i < cols; i++) {
+        const f = field[j][i];
+        if (f.v * densityMod < lt) continue;
+
+        const x = i / (cols - 1);
+        const y = j / (rows - 1);
+        const [px, py] = proj(x, y, z);
+
+        const a1 = Math.max(0, f.a1);
+        const a2 = Math.max(0, f.a2);
+        const b1 = Math.max(0, f.b1);
+        const b2 = Math.max(0, f.b2);
+
+        let R = (b1 + b2 * 0.7);
+        let G = (a2 + b2 * 0.7);
+        let B = (a1 + b2 * 0.7);
+
+        const boost = 0.6 + 1.2 * f.v;
+        R = Math.min(255, R * 255 * boost);
+        G = Math.min(255, G * 255 * boost);
+        B = Math.min(255, B * 255 * boost);
+
+        let alpha = (0.02 + 0.11 * (1 - lt) * (0.6 + 0.4 * f.v)) * alphaBoost;
+        if (lt < f.v * 0.3) alpha *= filamentBoost;
+
+        ctx.fillStyle = `rgba(${R|0},${G|0},${B|0},${alpha})`;
+        ctx.fillRect(px, py, 2 * sizeBoost, 2 * sizeBoost);
+      }
+    }
+  }
+
+  // Glyph-Evolution: harte + weiche Residuen + Composite
+  if (audio.mode === "SILENCE") {
+    memCtx.globalCompositeOperation = "lighter";
+    memCtx.globalAlpha = 1.0;
+    memCtx.drawImage(c, 0, 0);
+    memCtx.globalCompositeOperation = "source-over";
+  }
+  memCtx.globalAlpha = 0.04;
+  memCtx.drawImage(c, 0, 0);
+
+  // Kleine zusätzliche Glyphen-Schicht (diskret, adaptiv)
+  if (memEnergy > 0.2) {
+    const step = 32;
+    memCtx.globalAlpha = 0.10 * memEnergy;
+    for (let y = 0; y < h; y += step) {
+      for (let x = 0; x < w; x += step) {
+        if (Math.random() < memEnergy * 0.22 * (0.7 + 0.6*stability)) {
+          memCtx.fillStyle = `rgba(180,220,255,1)`;
+          memCtx.fillRect(x, y, 2, 8);
+        }
+      }
+    }
+  }
+
+  ctx.drawImage(mem, 0, 0);
+
+  updateMemEnergy();
+
+  hud.textContent = `
+Pure HTML5 Canvas (2D context). 
+No WebGL, no shaders, no libraries.
+---------------------
+t: ${t.toFixed(2)}
+
+Audio:
+  a1: ${audio.a1.toFixed(3)}
+  a2: ${audio.a2.toFixed(3)}
+  b1: ${audio.b1.toFixed(3)}
+  b2: ${audio.b2.toFixed(3)}
+  mode: ${audio.mode}
+
+Feld:
+  maxV:   ${metrics.maxV.toFixed(3)}
+  meanV:  ${metrics.meanV.toFixed(3)}
+  core:   ${core.toFixed(3)}
+  memE:   ${memEnergy.toFixed(3)}
+  phase:  ${phaseLock.toFixed(3)}
+  stab:   ${stability.toFixed(3)}
+
+Operator:
+  wA1: ${opWeights.A1.toFixed(2)}
+  wA2: ${opWeights.A2.toFixed(2)}
+  wB1: ${opWeights.B1.toFixed(2)}
+  wB2: ${opWeights.B2.toFixed(2)}
+  fA1: ${opFreq.A1.toFixed(2)}
+  fA2: ${opFreq.A2.toFixed(2)}
+  fB1: ${opFreq.B1.toFixed(2)}
+  fB2: ${opFreq.B2.toFixed(2)}
+  mut: ${opMutRate.toFixed(4)}
+  warp:${warpBase.toFixed(2)}
+
+Input:
+  mouseX: ${mouseX.toFixed(3)}
+  mouseY: ${mouseY.toFixed(3)}
+`.trim();
+}
+
+// ------------------------------------------------------------
+// Loop
+// ------------------------------------------------------------
+function loop() {
+  const audio = getAudioSignals();
+
+  const speed = (audio.mode === "SILENCE")
+    ? 0.002
+    : 0.012 + 0.010 * (0.5 + 0.5 * Math.sin(t * 0.07));
+
+  t += speed;
+
+  drawFrame(audio);
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+<script src="mo4.operator.js"></script>
+</body>
+</html>
