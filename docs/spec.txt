@@ -1,0 +1,4 @@
+SPEC
+state: 2d array float
+update: kernel(state, input) -> state
+render: state -> frame
