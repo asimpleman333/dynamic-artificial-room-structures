@@ -1,0 +1,6 @@
+STRUCTURE-NOTES
+src/: operator code
+docs/: static text artifacts
+release/: packaged builds
+examples/: minimal demos
+readme: root descriptor
